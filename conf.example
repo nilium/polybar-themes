@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Polybar config.
+# Remember to export variables.
+
+first() {
+        local filter="$1"
+        shift
+        printf '%s\n' "$@" | grep -Pe "$filter" | head -n1
+}
+
+# Set fonts and sizes.
+NORMAL_FONT='Ubuntu Condensed'
+NORMAL_FONT_SIZE=12
+FIXED_FONT='PragmataPro'
+FIXED_FONT_SIZE=15
+
+export POLYBAR_NORMAL_FONT="${NORMAL_FONT}:size=${NORMAL_FONT_SIZE};3"
+export POLYBAR_FIXED_FONT="${FIXED_FONT}:size=${FIXED_FONT_SIZE};4"
+
+# Select batteries and battery modules.
+batteries=($(ls -1 /sys/class/power_supply | grep '^BAT' | sort))
+export POLYBAR_BAT0="${batteries[0]}"
+export POLYBAR_BAT1="${batteries[1]}"
+
+export POLYBAR_CENTER='date battery'
+if [[ ${#batteries[@]} -gt 1 ]]; then
+        POLYBAR_CENTER+=' battery1'
+fi
+
+# Select network interfaces.
+ifaces=($(ip link ls | grep -Ee '^[1-9]' | fex 2:1))
+export POLYBAR_WLAN_IFACE="$(first '^wlp' "${ifaces[@]}")"
+export POLYBAR_LAN_IFACE="$(first '^enp0' "${ifaces[@]}")"
+
+network_modules=()
+if [[ -n "$POLYBAR_WLAN_IFACE" ]]; then
+        network_modules+=(wlan)
+fi
+if [[ -n "$POLYBAR_LAN_IFACE" ]]; then
+        # network_modules+=(lan)
+        :
+fi
+
+export POLYBAR_RIGHT="pulseaudio backlight ${network_modules[*]}"
+
+# Set tray position.
+case "$MONITOR" in
+eDP1|eDP-1) export POLYBAR_TRAY=right;;
+*)          export POLYBAR_TRAY=none;;
+esac
+
+# PulseAudio sink.
+#
+# Defer to using the default sink because PulseAudio is extremely unreliable
+# when it comes to asking it basic questions like "what's your fallback sink?"
+
+# export POLYBAR_PA_SINK="$(
+#         # List sinks using pactl because I guess the daemon stops itself if
+#         # nothing's going on for a while. This is normal if the environment's
+#         # being loaded for the first time because -- surprise -- startup
+#         # produces no sound.
+#         pactl list sinks short >/dev/null
+#         pacmd list-sinks |
+#                 grep -e 'name:' -e 'index' |
+#                 awk '($1 == "*"){getline; print $2}' |
+#                 fex '<1>1'
+# )"
