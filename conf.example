@@ -37,8 +37,7 @@ if [[ -n "$POLYBAR_WLAN_IFACE" ]]; then
         network_modules+=(wlan)
 fi
 if [[ -n "$POLYBAR_LAN_IFACE" ]]; then
-        # network_modules+=(lan)
-        :
+        network_modules+=(lan)
 fi
 
 export POLYBAR_RIGHT="pulseaudio backlight ${network_modules[*]}"
